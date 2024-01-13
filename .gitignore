@@ -12,6 +12,9 @@
 .idea/**/dictionaries
 .idea/**/shelf
 
+.metals/
+project/**/metals.sbt
+
 # AWS User-specific
 .idea/**/aws.xml
 
