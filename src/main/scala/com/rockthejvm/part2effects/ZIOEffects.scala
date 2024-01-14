@@ -49,5 +49,132 @@ object ZIOEffects {
   val aSuccessfulIO: IO[String, Int] = ZIO.succeed(34)
   val aFailedIO: IO[String, Int]     = ZIO.fail("Something bad happened")
 
-  def main(args: Array[String]): Unit = {}
+  /*
+   * Exercises
+   */
+
+  // 1 - sequence two ZIOs and take the value of the last one
+  def sequenceTakeLast[R, E, A, B](zioa: ZIO[R, E, A], ziob: ZIO[R, E, B]): ZIO[R, E, B] =
+    for {
+      _ <- zioa
+      b <- ziob
+    } yield b
+    // zioa *> ziob
+
+  // 2 - sequence two ZIOs and take the value of the first one
+  def sequenceTakeFirst[R, E, A, B](zioa: ZIO[R, E, A], ziob: ZIO[R, E, B]): ZIO[R, E, A] =
+    for {
+      a <- zioa
+      _ <- ziob
+    } yield a
+  // zioa <* ziob
+
+  // 3 - run a ZIO forever
+  def runForever[R, E, A](zio: ZIO[R, E, A]): ZIO[R, E, A] =
+    zio.flatMap(_ => runForever(zio))
+    // zio *> runForever(zio) // allocates on the heap, runs tail-recursively
+
+  lazy val endlessLoop = runForever {
+    ZIO.succeed {
+      println("running...")
+      Thread.sleep(1000)
+    }
+  }
+
+  // 4 - convert the value of a ZIO to something else
+  def convert[R, E, A, B](zio: ZIO[R, E, A], value: B): ZIO[R, E, B] =
+    zio.map(_ => value)
+    // zio.as(value)
+
+  // 5 - discard the value of a ZIO to Unit
+  def asUnit[R, E, A](zio: ZIO[R, E, A]): ZIO[R, E, Unit] =
+    zio.map(_ => ())
+    // convert(zio, ())
+    // zio.unit
+
+  // 6 - recursion
+  def sum(n: Int): Int =
+    if (n == 0) 0
+    else n + sum(n - 1) // will crash at sum (20000)
+
+  def sumZIO(n: BigInt): UIO[BigInt] = {
+    def sumZIOR(_n: BigInt, sum: BigInt): UIO[BigInt] =
+      if (_n == 0) ZIO.succeed(sum)
+      else sumZIOR(_n - 1, sum + _n)
+
+    sumZIOR(n, 0)
+  }
+
+  def sumZIO_v2(n: BigInt): UIO[BigInt] =
+    if (n == 0) ZIO.succeed(0)
+    else
+      for {
+        current <- ZIO.succeed(n)
+        prevSum <- sumZIO(n - 1)
+      } yield current + prevSum
+
+  // 7 - fibonacci
+  // hint: use ZIO.suspend/ZIO.suspendSucceed
+  def fiboZIO(n: Int): UIO[BigInt] = {
+    def fiboZIOR(_n: Int, prev: BigInt, cur: BigInt): UIO[BigInt] =
+      if (_n < 2) ZIO.succeed(cur)
+      else fiboZIOR(_n - 1, cur, prev + cur)
+
+    if (n == 0) ZIO.succeed(0)
+    else if (n == 1) ZIO.succeed(1)
+    else fiboZIOR(n, 0, 1)
+  }
+
+  def fiboZIO_v2(n: Int): UIO[BigInt] =
+    if (n <= 2) ZIO.succeed(1)
+    else
+      for {
+        last <- ZIO.suspendSucceed(fiboZIO_v2(n - 1))
+        prev <- ZIO.suspendSucceed(fiboZIO_v2(n - 2))
+      } yield last + prev
+
+  def main(args: Array[String]): Unit = {
+    val runtime        = Runtime.default
+    given trace: Trace = Trace.empty
+
+    Unsafe.unsafe { implicit u =>
+      val mol = runtime.unsafe.run(meaningOfLife)
+      println(mol)
+
+      val last = runtime.unsafe.run(sequenceTakeLast(ZIO.succeed("first"), ZIO.succeed("last")))
+      println(last)
+      val first = runtime.unsafe.run(sequenceTakeFirst(ZIO.succeed("first"), ZIO.succeed("last")))
+      println(first)
+
+      val convertValue = runtime.unsafe.run(convert(ZIO.succeed(1), "2"))
+      println(convertValue)
+
+      val asUnitValue = runtime.unsafe.run(asUnit(ZIO.succeed(true)))
+      println(asUnitValue)
+
+      // runtime.unsafe.run(runForever(endlessLoop))
+
+      val ten = runtime.unsafe.run(sumZIO(4))
+      println(ten)
+      val big = runtime.unsafe.run(sumZIO(200000))
+      println(big)
+      val big_v2 = runtime.unsafe.run(sumZIO_v2(2000000))
+      println(big_v2)
+
+      val one = runtime.unsafe.run(fiboZIO(2))
+      println(one)
+      val two = runtime.unsafe.run(fiboZIO(3))
+      println(two)
+      val three = runtime.unsafe.run(fiboZIO(4))
+      println(three)
+      val five = runtime.unsafe.run(fiboZIO(5))
+      println(five)
+      val eight = runtime.unsafe.run(fiboZIO(6))
+      println(eight)
+      val bigFibo = runtime.unsafe.run(fiboZIO(40))
+      println(bigFibo)
+      val bigFibo_v2 = runtime.unsafe.run(fiboZIO_v2(40))
+      println(bigFibo_v2)
+    }
+  }
 }
