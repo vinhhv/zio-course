@@ -12,8 +12,13 @@
 .idea/**/dictionaries
 .idea/**/shelf
 
+project/project/
+
 .metals/
 project/**/metals.sbt
+
+.bloop/
+.vscode/
 
 # AWS User-specific
 .idea/**/aws.xml
