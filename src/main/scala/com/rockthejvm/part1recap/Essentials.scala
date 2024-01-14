@@ -1,11 +1,8 @@
 package com.rockthejvm.part1recap
 
 import java.util.concurrent.Executors
-import scala.concurrent.ExecutionContext
-import scala.concurrent.Future
-import scala.util.Failure
-import scala.util.Success
-import scala.util.Try
+import scala.concurrent.{ExecutionContext, Future}
+import scala.util.{Failure, Success, Try}
 
 object Essentials {
   // values
