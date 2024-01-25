@@ -1,4 +1,4 @@
-package com.rockthejvm.util
+package com.rockthejvm.utils
 
 import zio.ZIO
 

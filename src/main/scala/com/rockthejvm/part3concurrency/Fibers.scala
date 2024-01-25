@@ -1,9 +1,9 @@
 package com.rockthejvm.part3concurrency
 
-import com.rockthejvm.util.*
 import zio.*
 
 import java.io.{File, FileReader, FileWriter}
+import com.rockthejvm.utils.*
 
 object Fibers extends ZIOAppDefault {
 
@@ -33,7 +33,7 @@ object Fibers extends ZIOAppDefault {
     result <- fib.join
   } yield result
 
-  // awaiting a fiber
+  // awaiting a fiber => same as join, but exposes its Exit datastructure
   def runOnAnotherThread_v2[R, E, A](zio: ZIO[R, E, A]) = for {
     fib    <- zio.fork
     result <- fib.await
